@@ -9,7 +9,7 @@ def gerar_conteudo(tema, config_blog):
 
     genai.configure(api_key=api_key)
 
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
     prompt = f"""
     Aja como especialista em {config_blog['nicho']}.
