@@ -1,5 +1,5 @@
 import os
-from google import genai
+import google.generativeai as genai
 
 def gerar_conteudo(tema, config_blog):
     api_key = os.getenv("GEMINI_API_KEY")
@@ -7,7 +7,9 @@ def gerar_conteudo(tema, config_blog):
     if not api_key:
         raise ValueError("GEMINI_API_KEY não encontrada.")
 
-    client = genai.Client(api_key=api_key)
+    genai.configure(api_key=api_key)
+
+    model = genai.GenerativeModel("gemini-1.5-flash")
 
     prompt = f"""
     Aja como especialista em {config_blog['nicho']}.
@@ -19,10 +21,6 @@ def gerar_conteudo(tema, config_blog):
     Linguagem natural, profissional e original.
     """
 
-    response = client.models.generate_content(
-        model="gemini-1.5-flash",
-        contents=prompt
-    )
+    response = model.generate_content(prompt)
 
     return response.text
-
