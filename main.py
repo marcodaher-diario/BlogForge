@@ -1,6 +1,7 @@
 import json
 import random
 from core.scheduler import blogs_do_dia
+from core.content_engine import gerar_conteudo
 
 def carregar_config_blog(nome_blog):
     caminho = f"blogs/{nome_blog}/config.json"
@@ -41,8 +42,13 @@ def main():
             continue
 
         tema_escolhido = random.choice(temas)
-
         print(f"Tema escolhido: {tema_escolhido}")
+
+        print("Gerando conteúdo com IA...")
+        conteudo = gerar_conteudo(tema_escolhido, config)
+
+        print("\nPrévia do conteúdo gerado:")
+        print(conteudo[:500])
         print("-" * 40)
 
 if __name__ == "__main__":
