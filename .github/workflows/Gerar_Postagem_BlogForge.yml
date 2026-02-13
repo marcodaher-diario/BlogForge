@@ -1,4 +1,4 @@
-name: Test Scheduler
+name: Gerar Postagem BlogForge
 
 on:
   workflow_dispatch:
@@ -20,12 +20,10 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-            - name: Run Scheduler Test
+      - name: Run Scheduler Test
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           UNSPLASH_API_KEY: ${{ secrets.UNSPLASH_API_KEY }}
         run: |
           python main.py
-
-
