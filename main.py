@@ -1,23 +1,16 @@
-import json
-from datetime import datetime
+from core.scheduler import blogs_do_dia
 
-def carregar_historico(blog_key):
-    caminho = f"historico/{blog_key}.json"
+def main():
+    blogs = blogs_do_dia()
 
-    if not os.path.exists(caminho):
-        return {
-            "temas_usados": [],
-            "datas_publicadas": [],
-            "categorias_recentemente_usadas": []
-        }
+    if not blogs:
+        print("Nenhum blog programado para hoje.")
+        return
 
-    with open(caminho, "r", encoding="utf-8") as f:
-        return json.load(f)
+    print("Blogs programados para hoje:")
 
+    for blog in blogs:
+        print(f"- {blog['nome']} (ID: {blog['blog_id']})")
 
-def salvar_historico(blog_key, dados):
-    caminho = f"historico/{blog_key}.json"
-
-    with open(caminho, "w", encoding="utf-8") as f:
-        json.dump(dados, f, indent=4)
-
+if __name__ == "__main__":
+    main()
