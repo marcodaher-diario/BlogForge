@@ -1,9 +1,9 @@
 {
   "nicho": "noticias",
-  "tom": "jornalístico e imparcial",
-  "tamanho_artigo": 800,
+  "tom": "jornalístico e analítico",
+  "tamanho_artigo": 1200,
   "usar_imagens": true,
   "quantidade_imagens": 2,
-  "seo_foco": "atualidades"
+  "seo_foco": "notícias atualizadas",
+  "url": "https://diariodenoticiasnovo.blogspot.com/"
 }
-
