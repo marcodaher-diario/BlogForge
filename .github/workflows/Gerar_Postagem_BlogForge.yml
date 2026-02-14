@@ -31,3 +31,12 @@ jobs:
           UNSPLASH_API_KEY: ${{ secrets.UNSPLASH_API_KEY }}
         run: |
           python main.py
+
+      - name: Commit image history
+        run: |
+          git config --global user.name "blogforge-bot"
+          git config --global user.email "bot@blogforge.local"
+          git add data/imagens_usadas.json
+          git commit -m "Atualiza histórico de imagens usadas" || echo "Nada para commitar"
+          git push
+
