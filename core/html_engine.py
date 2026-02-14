@@ -21,6 +21,11 @@ def gerar_html(titulo, conteudo, imagens, blog_nome, blog_url):
     imagem_principal = imagens[0] if imagens else ""
 
     # ==========================================
+    # TRATAR CONTEÚDO ANTES DA F-STRING
+    # ==========================================
+    conteudo_formatado = conteudo.replace("\n", "<br><br>")
+
+    # ==========================================
     # JSON-LD
     # ==========================================
     json_ld = f"""
@@ -100,7 +105,7 @@ def gerar_html(titulo, conteudo, imagens, blog_nome, blog_url):
     {imagens_html}
 
     <div style="color: #003366; font-family: Arial, sans-serif; font-size: medium; margin: 10px 0px; text-align: justify;">
-        {conteudo.replace("\n", "<br><br>")}
+        {conteudo_formatado}
     </div>
 
 </div>
