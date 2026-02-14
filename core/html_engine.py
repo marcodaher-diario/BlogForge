@@ -2,30 +2,44 @@ import re
 
 
 def formatar_conteudo(conteudo):
-    """
-    Converte Markdown básico em HTML estruturado profissional
-    """
 
-    # Converter títulos **Texto** para <h2>
+    # Converter títulos Markdown (## ou **Título**) em <h2>
     conteudo = re.sub(r"\*\*(.*?)\*\*", r"<h2>\1</h2>", conteudo)
 
-    # Dividir por linhas duplas para criar parágrafos
-    paragrafos = conteudo.split("\n\n")
+    linhas = conteudo.split("\n")
+    html_final = ""
+    em_lista = False
 
-    html_formatado = ""
+    for linha in linhas:
+        linha = linha.strip()
 
-    for p in paragrafos:
-        p = p.strip()
-        if not p:
+        if not linha:
             continue
 
-        # Se já for título, não envolver em <p>
-        if p.startswith("<h2>"):
-            html_formatado += p + "\n"
-        else:
-            html_formatado += f"<p>{p}</p>\n"
+        # Se for item de lista
+        if linha.startswith("* "):
+            if not em_lista:
+                html_final += "<ul>\n"
+                em_lista = True
 
-    return html_formatado
+            item = linha.replace("* ", "")
+            html_final += f"<li>{item}</li>\n"
+
+        else:
+            if em_lista:
+                html_final += "</ul>\n"
+                em_lista = False
+
+            # Se for título já convertido
+            if linha.startswith("<h2>"):
+                html_final += linha + "\n"
+            else:
+                html_final += f"<p>{linha}</p>\n"
+
+    if em_lista:
+        html_final += "</ul>\n"
+
+    return html_final
 
 
 def gerar_html(titulo, conteudo, imagens):
@@ -64,6 +78,13 @@ def gerar_html(titulo, conteudo, imagens):
         p {{
             margin-bottom: 18px;
             text-align: justify;
+        }}
+        ul {{
+            margin-left: 20px;
+            margin-bottom: 20px;
+        }}
+        li {{
+            margin-bottom: 10px;
         }}
     </style>
 </head>
