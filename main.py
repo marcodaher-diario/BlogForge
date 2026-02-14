@@ -1,20 +1,25 @@
 import json
 import random
+import os
+
 from core.scheduler import blogs_do_dia
 from core.content_engine import gerar_conteudo
 from core.image_engine import buscar_imagens_16_9
 from core.html_engine import gerar_html
+
 
 def carregar_config_blog(nome_blog):
     caminho = f"blogs/{nome_blog}/config.json"
     with open(caminho, "r", encoding="utf-8") as f:
         return json.load(f)
 
+
 def carregar_temas(nome_blog):
     caminho = f"blogs/{nome_blog}/temas.txt"
     with open(caminho, "r", encoding="utf-8") as f:
         temas = [linha.strip() for linha in f if linha.strip()]
     return temas
+
 
 def main():
     blogs = blogs_do_dia()
@@ -46,30 +51,43 @@ def main():
         tema_escolhido = random.choice(temas)
         print(f"Tema escolhido: {tema_escolhido}")
 
+        # ------------------ GERAR CONTEÚDO ------------------
         print("Gerando conteúdo com IA...")
         conteudo = gerar_conteudo(tema_escolhido, config)
 
+        # ------------------ BUSCAR IMAGENS ------------------
         print("Buscando imagens 16:9...")
-        imagens = buscar_imagens_16_9(tema_escolhido, config["quantidade_imagens"])
+        imagens = buscar_imagens_16_9(
+            tema_escolhido,
+            config["quantidade_imagens"]
+        )
 
         print("Imagens selecionadas:")
         for img in imagens:
             print(img)
 
+        # ------------------ PREVIEW TEXTO ------------------
         print("\nPrévia do conteúdo gerado:")
         print(conteudo[:500])
+
+        # ------------------ GERAR HTML ------------------
+        print("Gerando HTML estruturado...")
+
+        html_final = gerar_html(
+            tema_escolhido,
+            conteudo,
+            imagens
+        )
+
+        os.makedirs("preview", exist_ok=True)
+
+        arquivo_preview = f"preview/{nome}_preview.html"
+
+        with open(arquivo_preview, "w", encoding="utf-8") as f:
+            f.write(html_final)
+
+        print(f"Arquivo HTML salvo em: {arquivo_preview}")
         print("-" * 40)
-
-print("Gerando HTML estruturado...")
-
-html_final = gerar_html(tema_escolhido, conteudo, imagens)
-
-arquivo_preview = f"preview/{nome}_preview.html"
-
-with open(arquivo_preview, "w", encoding="utf-8") as f:
-    f.write(html_final)
-
-print(f"Arquivo HTML salvo em: {arquivo_preview}")
 
 
 if __name__ == "__main__":
