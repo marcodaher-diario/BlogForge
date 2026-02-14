@@ -1,126 +1,131 @@
-import json
-import random
 import os
+import json
 from datetime import datetime
 
-from core.scheduler import blogs_do_dia
 from core.content_engine import gerar_conteudo
-from core.image_engine import buscar_imagens_16_9
+from core.image_engine import buscar_imagens
 from core.html_engine import gerar_html
+from core.editorial_engine import escolher_tema
 
 
-# ==========================================
-# CARREGAR CONFIG DO BLOG
-# ==========================================
+# ==============================
+# CONFIGURAÇÕES GERAIS
+# ==============================
+
+TESTE_CARGA = True
+POSTS_POR_BLOG = 3
+
+
+BLOGS = {
+    "emagrecer": {
+        "id": "5251820458826857223",
+        "url": "https://emagrecendo100crise.blogspot.com/"
+    },
+    "dfbolhas": {
+        "id": "4324376157396303471",
+        "url": "https://dfbolhas.blogspot.com/"
+    },
+    "mdartefoto": {
+        "id": "5852420775961497718",
+        "url": "https://mdartefoto.blogspot.com/"
+    },
+    "diariodenoticias": {
+        "id": "8284393764979637984",
+        "url": "https://diariodenoticiasnovo.blogspot.com/"
+    },
+    "cursosnegocios": {
+        "id": "0000000000000000000",
+        "url": "https://cursosnegocioseoportunidades.blogspot.com/"
+    }
+}
+
+
+# ==============================
+# FUNÇÕES AUXILIARES
+# ==============================
+
 def carregar_config_blog(nome_blog):
     caminho = f"blogs/{nome_blog}/config.json"
+    
+    if not os.path.exists(caminho):
+        raise FileNotFoundError(f"Arquivo não encontrado: {caminho}")
+
     with open(caminho, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-# ==========================================
-# CARREGAR TEMAS
-# ==========================================
-def carregar_temas(nome_blog):
-    caminho = f"blogs/{nome_blog}/temas.txt"
-    with open(caminho, "r", encoding="utf-8") as f:
-        temas = [linha.strip() for linha in f if linha.strip()]
-    return temas
+def salvar_preview(nome_blog, html):
+    if not os.path.exists("preview"):
+        os.makedirs("preview")
 
-
-# ==========================================
-# GERAR PREVIEW HTML
-# ==========================================
-def salvar_preview(nome_blog, html_final):
-    os.makedirs("preview", exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    arquivo_preview = f"preview/{nome_blog}_{timestamp}.html"
+    nome_arquivo = f"preview/{nome_blog}_{timestamp}.html"
 
-    with open(arquivo_preview, "w", encoding="utf-8") as f:
-        f.write(html_final)
+    with open(nome_arquivo, "w", encoding="utf-8") as f:
+        f.write(html)
 
-    print(f"Preview salvo em: {arquivo_preview}")
+    print(f"Preview salvo em: {nome_arquivo}")
 
 
-# ==========================================
-# TESTE COMPLETO DE CARGA
-# ==========================================
+# ==============================
+# EXECUÇÃO PRINCIPAL
+# ==============================
+
 def main():
 
     print("\n===== TESTE COMPLETO DE CARGA =====\n")
 
-    blogs = blogs_do_dia()
+    for nome_blog, dados_blog in BLOGS.items():
 
-    if not blogs:
-        print("Nenhum blog programado para hoje.")
-        return
+        print(f"\nBlog: {nome_blog}")
+        print(f"Blog ID: {dados_blog['id']}")
 
-    for blog in blogs:
-
-        nome = blog["nome"]
-        blog_id = blog["blog_id"]
-
-        print(f"\nBlog: {nome}")
-        print(f"Blog ID: {blog_id}")
-
-        config = carregar_config_blog(nome)
-        temas = carregar_temas(nome)
-
-        if not temas:
-            print("Nenhum tema encontrado!")
+        try:
+            config = carregar_config_blog(nome_blog)
+        except Exception as e:
+            print(f"❌ Erro ao carregar config: {e}")
             continue
 
-        # QUANTIDADE DE POSTS POR EXECUÇÃO (teste de carga)
-        quantidade_posts = 3
+        for i in range(POSTS_POR_BLOG):
 
-        for i in range(quantidade_posts):
+            print(f"\n--- Gerando post {i+1} de {POSTS_POR_BLOG} ---")
 
-            print(f"\n--- Gerando post {i+1} de {quantidade_posts} ---")
+            try:
+                caminho_blog = f"blogs/{nome_blog}"
+                tema_escolhido = escolher_tema(caminho_blog)
 
-            tema_escolhido = random.choice(temas)
-            print(f"Tema escolhido: {tema_escolhido}")
+                print(f"Tema escolhido: {tema_escolhido}")
 
-            # ======================================
-            # GERAR CONTEÚDO
-            # ======================================
-            print("Gerando conteúdo com IA...")
-            conteudo = gerar_conteudo(tema_escolhido, config)
+                print("Gerando conteúdo com IA...")
+                conteudo = gerar_conteudo(tema_escolhido, config)
 
-            # ======================================
-            # BUSCAR IMAGENS
-            # ======================================
-            imagens = []
+                imagens = []
 
-            if config.get("usar_imagens", False):
-                print("Buscando imagens 16:9...")
-                imagens = buscar_imagens_16_9(
-                    tema_escolhido,
-                    config.get("quantidade_imagens", 1)
+                if config.get("usar_imagens", False):
+                    print("Buscando imagens 16:9...")
+                    imagens = buscar_imagens(
+                        tema_escolhido,
+                        config.get("quantidade_imagens", 1)
+                    )
+
+                print("Gerando HTML estruturado...")
+                html_final = gerar_html(
+                    titulo=tema_escolhido,
+                    conteudo=conteudo,
+                    imagens=imagens,
+                    blog_nome=nome_blog,
+                    blog_url=dados_blog["url"],
+                    seo_foco=config.get("seo_foco", "")
                 )
 
-            # ======================================
-            # GERAR HTML ESTRUTURADO
-            # ======================================
-            print("Gerando HTML estruturado...")
+                salvar_preview(nome_blog, html_final)
 
-            html_final = gerar_html(
-                titulo=tema_escolhido,
-                conteudo=conteudo,
-                imagens=imagens,
-                blog_nome=nome,
-                blog_url=config.get("url", "")
-            )
-
-            # ======================================
-            # SALVAR PREVIEW
-            # ======================================
-            salvar_preview(nome, html_final)
+            except Exception as e:
+                print(f"❌ Erro ao gerar post: {e}")
+                continue
 
     print("\n===== TESTE FINALIZADO COM SUCESSO =====\n")
 
 
-# ==========================================
-# EXECUÇÃO
-# ==========================================
 if __name__ == "__main__":
     main()
