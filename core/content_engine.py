@@ -19,13 +19,13 @@ def gerar_conteudo(tema, config_blog):
     """
 
     response = client.chat.completions.create(
-        model="llama3-70b-8192",
-        messages=[
-            {"role": "system", "content": "Você é um redator profissional especialista em criação de artigos para blog."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.7,
-        max_tokens=2000
-    )
+    model="llama-3.3-70b-versatile",
+    messages=[
+        {"role": "system", "content": "Você é um redator profissional especialista em criação de artigos para blog."},
+        {"role": "user", "content": prompt}
+    ],
+    temperature=0.7,
+    max_tokens=2000
+)
 
     return response.choices[0].message.content
