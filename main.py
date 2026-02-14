@@ -53,7 +53,7 @@ def main():
 
         print("Imagens selecionadas:")
         for img in imagens:
-        print(img)
+            print(img)
 
         print("\nPrévia do conteúdo gerado:")
         print(conteudo[:500])
