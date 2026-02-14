@@ -1,9 +1,9 @@
 {
   "nicho": "saude",
-  "tom": "educativo e motivador",
-  "tamanho_artigo": 900,
-  "usar_imagens": true,
-  "quantidade_imagens": 2,
+  "schema_type": "Article",
+  "site_url": "https://emagrecendo100crise.blogspot.com/",
+  "nome_site": "Emagrecer com Saúde",
+  "logo_url": "URL_DO_LOGO_AQUI",
+  "autor": "Marco Daher",
   "seo_foco": "emagrecimento saudável"
 }
-
