@@ -1,4 +1,22 @@
 import re
+import json
+
+
+def extrair_meta_description(conteudo):
+    """
+    Extrai o primeiro parágrafo limpo para usar como meta description
+    """
+
+    texto_limpo = re.sub(r"\*\*(.*?)\*\*", r"\1", conteudo)
+    paragrafos = texto_limpo.split("\n")
+
+    for p in paragrafos:
+        p = p.strip()
+        if p and not p.startswith("*"):
+            descricao = re.sub(r"<.*?>", "", p)
+            return descricao[:160]
+
+    return ""
 
 
 def formatar_conteudo(conteudo):
@@ -13,7 +31,6 @@ def formatar_conteudo(conteudo):
         if not linha:
             continue
 
-        # Item de lista
         if linha.startswith("* "):
             if not em_lista:
                 html_final += "<ul>\n"
@@ -34,7 +51,6 @@ def formatar_conteudo(conteudo):
                 html_final += "</ul>\n"
                 em_lista = False
 
-            # Título principal
             if linha.startswith("**") and linha.endswith("**"):
                 titulo = linha.replace("**", "")
                 html_final += f"<h2>{titulo}</h2>\n"
@@ -49,15 +65,33 @@ def formatar_conteudo(conteudo):
 
 def gerar_html(titulo, conteudo, imagens):
 
+    meta_description = extrair_meta_description(conteudo)
     conteudo_formatado = formatar_conteudo(conteudo)
+
+    schema = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": titulo,
+        "description": meta_description,
+        "author": {
+            "@type": "Person",
+            "name": "Marco Daher"
+        },
+        "image": imagens,
+    }
 
     html = f"""
 <html>
 <head>
     <meta charset="UTF-8">
     <title>{titulo}</title>
-    <meta name="description" content="{titulo}">
+    <meta name="description" content="{meta_description}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script type="application/ld+json">
+    {json.dumps(schema, ensure_ascii=False, indent=2)}
+    </script>
+
     <style>
         body {{
             font-family: Arial, sans-serif;
