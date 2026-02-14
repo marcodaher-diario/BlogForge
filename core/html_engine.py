@@ -3,16 +3,29 @@ import re
 
 def formatar_conteudo(conteudo):
     """
-    Converte Markdown básico para HTML profissional
+    Converte Markdown básico em HTML estruturado profissional
     """
 
-    # Converter títulos em negrito para <h2>
+    # Converter títulos **Texto** para <h2>
     conteudo = re.sub(r"\*\*(.*?)\*\*", r"<h2>\1</h2>", conteudo)
 
-    # Converter quebras de linha
-    conteudo = conteudo.replace("\n", "<br><br>")
+    # Dividir por linhas duplas para criar parágrafos
+    paragrafos = conteudo.split("\n\n")
 
-    return conteudo
+    html_formatado = ""
+
+    for p in paragrafos:
+        p = p.strip()
+        if not p:
+            continue
+
+        # Se já for título, não envolver em <p>
+        if p.startswith("<h2>"):
+            html_formatado += p + "\n"
+        else:
+            html_formatado += f"<p>{p}</p>\n"
+
+    return html_formatado
 
 
 def gerar_html(titulo, conteudo, imagens):
@@ -49,7 +62,8 @@ def gerar_html(titulo, conteudo, imagens):
             border-radius: 8px;
         }}
         p {{
-            margin-bottom: 15px;
+            margin-bottom: 18px;
+            text-align: justify;
         }}
     </style>
 </head>
