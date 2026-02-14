@@ -2,6 +2,7 @@ import json
 import random
 from core.scheduler import blogs_do_dia
 from core.content_engine import gerar_conteudo
+from core.image_engine import buscar_imagens_16_9
 
 def carregar_config_blog(nome_blog):
     caminho = f"blogs/{nome_blog}/config.json"
@@ -46,6 +47,13 @@ def main():
 
         print("Gerando conteúdo com IA...")
         conteudo = gerar_conteudo(tema_escolhido, config)
+
+        print("Buscando imagens 16:9...")
+        imagens = buscar_imagens_16_9(tema_escolhido, config["quantidade_imagens"])
+
+        print("Imagens selecionadas:")
+        for img in imagens:
+        print(img)
 
         print("\nPrévia do conteúdo gerado:")
         print(conteudo[:500])
