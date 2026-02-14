@@ -25,10 +25,8 @@ jobs:
 
       - name: Run Scheduler Test
         env:
-          env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          UNSPLASH_API_KEY: ${{ secrets.UNSPLASH_API_KEY }}
         run: |
           python main.py
 
@@ -39,4 +37,3 @@ jobs:
           git add data/imagens_usadas.json
           git commit -m "Atualiza histórico de imagens usadas" || echo "Nada para commitar"
           git push
-
