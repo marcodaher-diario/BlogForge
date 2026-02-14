@@ -34,15 +34,15 @@ def gerar_conteudo(tema, config_blog):
     - Tom: {tom}
     - Aproximadamente {tamanho} palavras
     - Foco em SEO: {seo_foco}
-    - Linguagem natural e envolvente
     - Estrutura com:
         - Introdução
-        - Subtítulos (H2)
+        - Subtítulos claros
         - Listas quando necessário
-        - Conclusão forte
-    - NÃO use emojis
-    - NÃO use hashtags
-    - NÃO escreva marcações HTML
+        - Conclusão estratégica
+    - Linguagem natural
+    - Não usar emojis
+    - Não usar hashtags
+    - Não escrever HTML
     - Texto limpo
     """
 
@@ -50,9 +50,9 @@ def gerar_conteudo(tema, config_blog):
     # CHAMADA DA IA
     # ==============================
     response = client.chat.completions.create(
-        model="llama3-8b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[
-            {"role": "system", "content": "Você é um redator profissional especialista em SEO."},
+            {"role": "system", "content": "Você é um redator profissional especialista em SEO e blogs."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
