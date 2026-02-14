@@ -3,6 +3,7 @@ import random
 from core.scheduler import blogs_do_dia
 from core.content_engine import gerar_conteudo
 from core.image_engine import buscar_imagens_16_9
+from core.html_engine import gerar_html
 
 def carregar_config_blog(nome_blog):
     caminho = f"blogs/{nome_blog}/config.json"
@@ -58,6 +59,18 @@ def main():
         print("\nPrévia do conteúdo gerado:")
         print(conteudo[:500])
         print("-" * 40)
+
+print("Gerando HTML estruturado...")
+
+html_final = gerar_html(tema_escolhido, conteudo, imagens)
+
+arquivo_preview = f"preview/{nome}_preview.html"
+
+with open(arquivo_preview, "w", encoding="utf-8") as f:
+    f.write(html_final)
+
+print(f"Arquivo HTML salvo em: {arquivo_preview}")
+
 
 if __name__ == "__main__":
     main()
