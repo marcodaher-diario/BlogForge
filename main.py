@@ -7,7 +7,6 @@ from core.scheduler import blogs_do_dia
 from core.content_engine import gerar_conteudo
 from core.image_engine import buscar_imagens_16_9
 from core.html_engine import gerar_html
-from core.ideas_engine import gerar_tema_estrategico
 
 
 # ==========================================
@@ -19,12 +18,11 @@ GERAR_IMAGENS = True
 
 
 # ==========================================
-# FUNÇÕES AUXILIARES
+# UTILITÁRIOS DE TEMA
 # ==========================================
 
 def carregar_config_blog(nome_blog):
     caminho = f"blogs/{nome_blog}/config.json"
-
     if not os.path.exists(caminho):
         raise FileNotFoundError(f"Config não encontrada para {nome_blog}")
 
@@ -34,13 +32,56 @@ def carregar_config_blog(nome_blog):
 
 def carregar_temas(nome_blog):
     caminho = f"blogs/{nome_blog}/temas.txt"
-
     if not os.path.exists(caminho):
         return []
 
     with open(caminho, "r", encoding="utf-8") as f:
         return [linha.strip() for linha in f if linha.strip()]
 
+
+def caminho_historico(nome_blog):
+    return f"blogs/{nome_blog}/temas_usados.json"
+
+
+def carregar_temas_usados(nome_blog):
+    caminho = caminho_historico(nome_blog)
+    if not os.path.exists(caminho):
+        return []
+
+    with open(caminho, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def salvar_temas_usados(nome_blog, lista):
+    caminho = caminho_historico(nome_blog)
+    with open(caminho, "w", encoding="utf-8") as f:
+        json.dump(lista, f, indent=2, ensure_ascii=False)
+
+
+def escolher_tema_inteligente(nome_blog, temas):
+    usados = carregar_temas_usados(nome_blog)
+
+    # Remove temas já usados
+    disponiveis = [t for t in temas if t not in usados]
+
+    # Se todos já foram usados → reset automático
+    if not disponiveis:
+        print("Todos os temas já foram utilizados. Reiniciando ciclo.")
+        usados = []
+        salvar_temas_usados(nome_blog, usados)
+        disponiveis = temas.copy()
+
+    tema_escolhido = random.choice(disponiveis)
+
+    usados.append(tema_escolhido)
+    salvar_temas_usados(nome_blog, usados)
+
+    return tema_escolhido
+
+
+# ==========================================
+# PREVIEW
+# ==========================================
 
 def salvar_preview(nome_blog, html):
     os.makedirs("preview", exist_ok=True)
@@ -55,31 +96,11 @@ def salvar_preview(nome_blog, html):
 
 
 # ==========================================
-# ESCOLHA INTELIGENTE DE TEMA
-# ==========================================
-
-def escolher_tema(nome_blog, config):
-    """
-    Prioridade:
-    1️⃣ temas.txt se existir
-    2️⃣ banco estratégico automático por nicho
-    """
-
-    temas = carregar_temas(nome_blog)
-
-    if temas:
-        return random.choice(temas)
-
-    nicho = config.get("nicho", "")
-    return gerar_tema_estrategico(nicho)
-
-
-# ==========================================
 # SISTEMA PRINCIPAL
 # ==========================================
 
 def main():
-    print("\n===== SISTEMA HÍBRIDO PROFISSIONAL =====\n")
+    print("\n===== SISTEMA PROFISSIONAL DEFINITIVO =====\n")
 
     blogs = blogs_do_dia()
 
@@ -100,21 +121,33 @@ def main():
             print(f"ERRO: {e}")
             continue
 
+        temas = carregar_temas(nome)
+
+        if not temas:
+            print("Nenhum tema encontrado.")
+            continue
+
         for i in range(POSTS_POR_BLOG):
             print(f"\n--- Gerando post {i+1} de {POSTS_POR_BLOG} ---")
 
-            tema_escolhido = escolher_tema(nome, config)
+            # ==============================
+            # ESCOLHA INTELIGENTE DE TEMA
+            # ==============================
+
+            tema_escolhido = escolher_tema_inteligente(nome, temas)
             print(f"Tema escolhido: {tema_escolhido}")
 
             # ==============================
             # GERAR CONTEÚDO
             # ==============================
+
             print("Gerando conteúdo com IA...")
             conteudo = gerar_conteudo(tema_escolhido, config)
 
             # ==============================
             # GERAR IMAGENS
             # ==============================
+
             imagens = []
 
             if GERAR_IMAGENS and config.get("usar_imagens", True):
@@ -122,8 +155,8 @@ def main():
                 try:
                     imagens = buscar_imagens_16_9(
                         tema_escolhido,
-                        quantidade=config.get("quantidade_imagens", 2),
-                        nicho=config.get("nicho")
+                        config.get("quantidade_imagens", 2),
+                        config.get("nicho")
                     )
                 except Exception as e:
                     print(f"Erro ao buscar imagens: {e}")
@@ -131,7 +164,9 @@ def main():
             # ==============================
             # GERAR HTML
             # ==============================
+
             print("Gerando HTML estruturado...")
+
             try:
                 html_final = gerar_html(
                     blog_nome=nome,
@@ -140,11 +175,11 @@ def main():
                     imagens=imagens,
                     config_blog=config
                 )
-
-                salvar_preview(nome, html_final)
-
             except Exception as e:
                 print(f"Erro ao gerar HTML: {e}")
+                continue
+
+            salvar_preview(nome, html_final)
 
     print("\n===== SISTEMA FINALIZADO COM SUCESSO =====\n")
 
