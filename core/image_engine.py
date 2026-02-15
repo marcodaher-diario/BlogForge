@@ -16,12 +16,14 @@ DATA_FILE = "data/imagens_usadas.json"
 def carregar_imagens_usadas():
     if not os.path.exists(DATA_FILE):
         return []
+
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def salvar_imagens_usadas(lista):
     os.makedirs("data", exist_ok=True)
+
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(lista, f, indent=2)
 
@@ -37,7 +39,7 @@ def limpar_titulo(titulo):
 
 
 # ==========================================
-# GERADOR DE QUERY INTELIGENTE
+# QUERY INTELIGENTE POR NICHO
 # ==========================================
 
 def gerar_query_inteligente(tema, nicho):
@@ -85,10 +87,10 @@ def gerar_query_inteligente(tema, nicho):
 
 
 # ==========================================
-# BUSCA DE IMAGENS
+# BUSCA INTELIGENTE DE IMAGENS
 # ==========================================
 
-def buscar_imagens_16_9(tema, quantidade=2, nicho=None):
+def buscar_imagens_inteligente(tema, nicho=None, quantidade=1):
 
     if not PEXELS_API_KEY:
         print("PEXELS_API_KEY não encontrada.")
@@ -110,10 +112,11 @@ def buscar_imagens_16_9(tema, quantidade=2, nicho=None):
     imagens_validas = []
 
     for foto in data.get("photos", []):
-        width = foto["width"]
-        height = foto["height"]
+        width = foto.get("width")
+        height = foto.get("height")
 
-        if eh_horizontal(width, height):
+        if width and height and eh_horizontal(width, height):
+
             url_img = foto["src"]["large2x"]
 
             if url_img not in imagens_usadas:
