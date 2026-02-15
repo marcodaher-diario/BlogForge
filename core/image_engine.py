@@ -5,7 +5,6 @@ import json
 import re
 
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
-
 DATA_FILE = "data/imagens_usadas.json"
 
 
@@ -16,14 +15,12 @@ DATA_FILE = "data/imagens_usadas.json"
 def carregar_imagens_usadas():
     if not os.path.exists(DATA_FILE):
         return []
-
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def salvar_imagens_usadas(lista):
     os.makedirs("data", exist_ok=True)
-
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(lista, f, indent=2)
 
@@ -87,10 +84,10 @@ def gerar_query_inteligente(tema, nicho):
 
 
 # ==========================================
-# BUSCA INTELIGENTE DE IMAGENS
+# BUSCA PRINCIPAL DE IMAGENS
 # ==========================================
 
-def buscar_imagens_inteligente(tema, nicho=None, quantidade=1):
+def buscar_imagens_16_9(tema, quantidade=2, nicho=None):
 
     if not PEXELS_API_KEY:
         print("PEXELS_API_KEY não encontrada.")
@@ -102,7 +99,8 @@ def buscar_imagens_inteligente(tema, nicho=None, quantidade=1):
     headers = {"Authorization": PEXELS_API_KEY}
 
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
         data = response.json()
     except Exception as e:
         print(f"Erro na API Pexels: {e}")
@@ -115,8 +113,10 @@ def buscar_imagens_inteligente(tema, nicho=None, quantidade=1):
         width = foto.get("width")
         height = foto.get("height")
 
-        if width and height and eh_horizontal(width, height):
+        if not width or not height:
+            continue
 
+        if eh_horizontal(width, height):
             url_img = foto["src"]["large2x"]
 
             if url_img not in imagens_usadas:
