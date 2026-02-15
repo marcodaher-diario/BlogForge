@@ -5,21 +5,21 @@ from datetime import datetime
 
 from core.scheduler import blogs_do_dia
 from core.content_engine import gerar_conteudo
-from core.image_engine import buscar_imagens_16_9
+from core.image_engine import buscar_imagens_inteligente
 from core.html_engine import gerar_html
 
 
-# ==========================================================
-# CONFIGURAÇÕES GERAIS
-# ==========================================================
+# ==========================================
+# CONFIGURAÇÕES
+# ==========================================
 
 POSTS_POR_BLOG = 3
 GERAR_IMAGENS = True
 
 
-# ==========================================================
+# ==========================================
 # FUNÇÕES AUXILIARES
-# ==========================================================
+# ==========================================
 
 def carregar_config_blog(nome_blog):
     caminho = f"blogs/{nome_blog}/config.json"
@@ -29,16 +29,6 @@ def carregar_config_blog(nome_blog):
 
     with open(caminho, "r", encoding="utf-8") as f:
         return json.load(f)
-
-
-def carregar_temas(nome_blog):
-    caminho = f"blogs/{nome_blog}/temas.txt"
-
-    if not os.path.exists(caminho):
-        return []
-
-    with open(caminho, "r", encoding="utf-8") as f:
-        return [linha.strip() for linha in f if linha.strip()]
 
 
 def salvar_preview(nome_blog, html):
@@ -53,9 +43,9 @@ def salvar_preview(nome_blog, html):
     print(f"Preview salvo em: {nome_arquivo}")
 
 
-# ==========================================================
+# ==========================================
 # SISTEMA PRINCIPAL
-# ==========================================================
+# ==========================================
 
 def main():
 
@@ -75,40 +65,31 @@ def main():
         print(f"\nBlog: {nome}")
         print(f"Blog ID: {blog_id}")
 
-        # ------------------------------------------------------
-        # CARREGAR CONFIG
-        # ------------------------------------------------------
-
         try:
             config = carregar_config_blog(nome)
-        except Exception as e:
-            print(f"ERRO ao carregar config: {e}")
+        except FileNotFoundError as e:
+            print(f"ERRO: {e}")
             continue
-
-        # ------------------------------------------------------
-        # CARREGAR TEMAS
-        # ------------------------------------------------------
-
-        temas = carregar_temas(nome)
-
-        if not temas:
-            print("Nenhum tema encontrado.")
-            continue
-
-        # ------------------------------------------------------
-        # GERAR POSTS
-        # ------------------------------------------------------
 
         for i in range(POSTS_POR_BLOG):
 
             print(f"\n--- Gerando post {i+1} de {POSTS_POR_BLOG} ---")
 
-            tema_escolhido = random.choice(temas)
+            # ======================================
+            # TEMA (BANCO INFINITO)
+            # ======================================
+
+            try:
+                from core.ideias_engine import gerar_ideia_unica
+                tema_escolhido = gerar_ideia_unica(nome, config)
+            except Exception:
+                tema_escolhido = "Tema Estratégico Automático"
+
             print(f"Tema escolhido: {tema_escolhido}")
 
-            # -----------------------------
-            # GERAR CONTEÚDO
-            # -----------------------------
+            # ======================================
+            # CONTEÚDO
+            # ======================================
 
             print("Gerando conteúdo com IA...")
             try:
@@ -117,26 +98,26 @@ def main():
                 print(f"Erro ao gerar conteúdo: {e}")
                 continue
 
-            # -----------------------------
-            # GERAR IMAGENS
-            # -----------------------------
+            # ======================================
+            # IMAGEM INTELIGENTE
+            # ======================================
 
             imagens = []
 
             if GERAR_IMAGENS and config.get("usar_imagens", True):
                 print("Buscando imagens horizontais inteligentes...")
                 try:
-                    imagens = buscar_imagens_16_9(
-                        tema_escolhido,
-                        config.get("quantidade_imagens", 2),
-                        nicho=config.get("nicho")
+                    imagens = buscar_imagens_inteligente(
+                        tema=tema_escolhido,
+                        nicho=config.get("nicho", ""),
+                        quantidade=1
                     )
                 except Exception as e:
                     print(f"Erro ao buscar imagens: {e}")
 
-            # -----------------------------
-            # GERAR HTML
-            # -----------------------------
+            # ======================================
+            # HTML FINAL
+            # ======================================
 
             print("Gerando HTML estruturado...")
 
@@ -145,7 +126,8 @@ def main():
                     blog_nome=nome,
                     titulo=tema_escolhido,
                     conteudo=conteudo,
-                    imagens=imagens
+                    imagens=imagens,
+                    config_blog=config
                 )
             except Exception as e:
                 print(f"Erro ao gerar HTML: {e}")
@@ -155,10 +137,6 @@ def main():
 
     print("\n===== SISTEMA FINALIZADO COM SUCESSO =====\n")
 
-
-# ==========================================================
-# EXECUÇÃO
-# ==========================================================
 
 if __name__ == "__main__":
     main()
