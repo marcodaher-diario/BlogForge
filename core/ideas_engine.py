@@ -1,64 +1,109 @@
-import json
-import os
 import random
-from datetime import datetime
-from core.content_engine import gerar_conteudo
+import re
 
-def caminho_ideias(blog_nome):
-    return f"blogs/{blog_nome}/ideias.json"
 
-def carregar_ideias(blog_nome):
-    caminho = caminho_ideias(blog_nome)
+# ==========================================
+# ESTRUTURAS ESTRATÉGICAS POR NICHO
+# ==========================================
 
-    if not os.path.exists(caminho):
-        return {"ideias_disponiveis": [], "ideias_usadas": []}
+ESTRUTURAS = {
+    "saude": [
+        "Como {keyword} de forma natural",
+        "{keyword}: guia completo atualizado",
+        "{keyword} funciona mesmo? Entenda a verdade",
+        "Erros comuns sobre {keyword}",
+        "{keyword} após os 40 anos: o que muda?",
+        "O que ninguém te conta sobre {keyword}",
+        "{keyword}: estratégia comprovada",
+    ],
 
-    with open(caminho, "r", encoding="utf-8") as f:
-        return json.load(f)
+    "automodelismo": [
+        "Guia definitivo sobre {keyword}",
+        "Como melhorar {keyword} no seu RC",
+        "Erros comuns em {keyword}",
+        "Setup ideal para {keyword}",
+        "{keyword}: dicas avançadas",
+        "Tudo sobre {keyword} para iniciantes",
+    ],
 
-def salvar_ideias(blog_nome, dados):
-    with open(caminho_ideias(blog_nome), "w", encoding="utf-8") as f:
-        json.dump(dados, f, indent=2, ensure_ascii=False)
+    "fotografia": [
+        "Como dominar {keyword}",
+        "Guia prático de {keyword}",
+        "Erros que arruínam {keyword}",
+        "{keyword}: técnica profissional explicada",
+        "Segredos de {keyword}",
+    ],
 
-def gerar_novas_ideias(blog_nome, config, quantidade=20):
-    prompt = f"""
-    Gere {quantidade} ideias de títulos altamente estratégicos para blog.
-    Nicho: {config.get("nicho")}
-    Tom: {config.get("tom")}
-    Foco SEO: {config.get("seo_foco")}
-    
-    Retorne apenas lista simples, uma ideia por linha.
-    """
+    "noticias": [
+        "Entenda o impacto de {keyword}",
+        "{keyword}: o que está acontecendo agora",
+        "Análise completa sobre {keyword}",
+        "Bastidores de {keyword}",
+        "{keyword}: cenário atual e perspectivas",
+    ]
+}
 
-    resposta = gerar_conteudo(prompt, config)
 
-    ideias = []
-    for linha in resposta.split("\n"):
-        linha = linha.strip("- ").strip()
-        if len(linha) > 10:
-            ideias.append(linha)
+# ==========================================
+# PALAVRAS-CHAVE POR NICHO
+# ==========================================
 
-    return ideias
+KEYWORDS = {
+    "saude": [
+        "emagrecimento saudável",
+        "perda de gordura",
+        "metabolismo acelerado",
+        "dieta equilibrada",
+        "hábitos saudáveis",
+        "queima de gordura",
+        "reeducação alimentar"
+    ],
 
-def obter_tema(blog_nome, config):
-    dados = carregar_ideias(blog_nome)
+    "automodelismo": [
+        "suspensão RC",
+        "motor brushless",
+        "bateria LiPo",
+        "setup para pista",
+        "drift RC",
+        "manutenção preventiva",
+        "bolha de policarbonato"
+    ],
 
-    # Se estoque baixo → gera novas ideias
-    if len(dados["ideias_disponiveis"]) < 5:
-        novas = gerar_novas_ideias(blog_nome, config, quantidade=30)
-        dados["ideias_disponiveis"].extend(novas)
+    "fotografia": [
+        "fotografia noturna",
+        "composição fotográfica",
+        "luz natural",
+        "edição no Photoshop",
+        "fotografia profissional",
+        "portfólio digital"
+    ],
 
-    if not dados["ideias_disponiveis"]:
-        raise ValueError("Não foi possível gerar ideias.")
+    "noticias": [
+        "economia brasileira",
+        "crise política",
+        "reforma tributária",
+        "mercado financeiro",
+        "relações internacionais",
+        "cenário eleitoral"
+    ]
+}
 
-    tema = random.choice(dados["ideias_disponiveis"])
 
-    dados["ideias_disponiveis"].remove(tema)
-    dados["ideias_usadas"].append({
-        "titulo": tema,
-        "data": datetime.now().isoformat()
-    })
+# ==========================================
+# GERADOR PRINCIPAL
+# ==========================================
 
-    salvar_ideias(blog_nome, dados)
+def gerar_tema_estrategico(nicho):
 
-    return tema
+    if nicho not in ESTRUTURAS:
+        return "Conteúdo Estratégico Atualizado"
+
+    estrutura = random.choice(ESTRUTURAS[nicho])
+    keyword = random.choice(KEYWORDS[nicho])
+
+    titulo = estrutura.replace("{keyword}", keyword)
+
+    # Remove numeração automática
+    titulo = re.sub(r"^\d+\.\s*", "", titulo)
+
+    return titulo
