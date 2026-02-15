@@ -5,8 +5,9 @@ from datetime import datetime
 
 from core.scheduler import blogs_do_dia
 from core.content_engine import gerar_conteudo
-from core.image_engine import buscar_imagens_inteligente
+from core.image_engine import buscar_imagens_16_9
 from core.html_engine import gerar_html
+from core.ideas_engine import gerar_tema_estrategico
 
 
 # ==========================================
@@ -31,6 +32,16 @@ def carregar_config_blog(nome_blog):
         return json.load(f)
 
 
+def carregar_temas(nome_blog):
+    caminho = f"blogs/{nome_blog}/temas.txt"
+
+    if not os.path.exists(caminho):
+        return []
+
+    with open(caminho, "r", encoding="utf-8") as f:
+        return [linha.strip() for linha in f if linha.strip()]
+
+
 def salvar_preview(nome_blog, html):
     os.makedirs("preview", exist_ok=True)
 
@@ -44,11 +55,30 @@ def salvar_preview(nome_blog, html):
 
 
 # ==========================================
+# ESCOLHA INTELIGENTE DE TEMA
+# ==========================================
+
+def escolher_tema(nome_blog, config):
+    """
+    Prioridade:
+    1️⃣ temas.txt se existir
+    2️⃣ banco estratégico automático por nicho
+    """
+
+    temas = carregar_temas(nome_blog)
+
+    if temas:
+        return random.choice(temas)
+
+    nicho = config.get("nicho", "")
+    return gerar_tema_estrategico(nicho)
+
+
+# ==========================================
 # SISTEMA PRINCIPAL
 # ==========================================
 
 def main():
-
     print("\n===== SISTEMA HÍBRIDO PROFISSIONAL =====\n")
 
     blogs = blogs_do_dia()
@@ -58,7 +88,6 @@ def main():
         return
 
     for blog in blogs:
-
         nome = blog["nome"]
         blog_id = blog["blog_id"]
 
@@ -72,55 +101,37 @@ def main():
             continue
 
         for i in range(POSTS_POR_BLOG):
-
             print(f"\n--- Gerando post {i+1} de {POSTS_POR_BLOG} ---")
 
-            # ======================================
-            # TEMA (BANCO INFINITO)
-            # ======================================
-
-            try:
-                from core.ideias_engine import gerar_ideia_unica
-                tema_escolhido = gerar_ideia_unica(nome, config)
-            except Exception:
-                tema_escolhido = "Tema Estratégico Automático"
-
+            tema_escolhido = escolher_tema(nome, config)
             print(f"Tema escolhido: {tema_escolhido}")
 
-            # ======================================
-            # CONTEÚDO
-            # ======================================
-
+            # ==============================
+            # GERAR CONTEÚDO
+            # ==============================
             print("Gerando conteúdo com IA...")
-            try:
-                conteudo = gerar_conteudo(tema_escolhido, config)
-            except Exception as e:
-                print(f"Erro ao gerar conteúdo: {e}")
-                continue
+            conteudo = gerar_conteudo(tema_escolhido, config)
 
-            # ======================================
-            # IMAGEM INTELIGENTE
-            # ======================================
-
+            # ==============================
+            # GERAR IMAGENS
+            # ==============================
             imagens = []
 
             if GERAR_IMAGENS and config.get("usar_imagens", True):
                 print("Buscando imagens horizontais inteligentes...")
                 try:
-                    imagens = buscar_imagens_inteligente(
-                        tema=tema_escolhido,
-                        nicho=config.get("nicho", ""),
-                        quantidade=1
+                    imagens = buscar_imagens_16_9(
+                        tema_escolhido,
+                        quantidade=config.get("quantidade_imagens", 2),
+                        nicho=config.get("nicho")
                     )
                 except Exception as e:
                     print(f"Erro ao buscar imagens: {e}")
 
-            # ======================================
-            # HTML FINAL
-            # ======================================
-
+            # ==============================
+            # GERAR HTML
+            # ==============================
             print("Gerando HTML estruturado...")
-
             try:
                 html_final = gerar_html(
                     blog_nome=nome,
@@ -129,11 +140,11 @@ def main():
                     imagens=imagens,
                     config_blog=config
                 )
+
+                salvar_preview(nome, html_final)
+
             except Exception as e:
                 print(f"Erro ao gerar HTML: {e}")
-                continue
-
-            salvar_preview(nome, html_final)
 
     print("\n===== SISTEMA FINALIZADO COM SUCESSO =====\n")
 
