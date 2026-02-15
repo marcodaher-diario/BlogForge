@@ -1,188 +1,194 @@
-import os
 import json
-import random
+import re
 from datetime import datetime
-
-from core.scheduler import blogs_do_dia
-from core.content_engine import gerar_conteudo
-from core.image_engine import buscar_imagens_16_9
-from core.html_engine import gerar_html
+from core.assinatura import BLOCO_FIXO_FINAL
 
 
-# ==========================================
-# CONFIGURAÇÕES
-# ==========================================
+def converter_markdown_simples(texto):
+    """
+    Converte:
+    **Título** -> <h2>
+    * item -> lista
+    Parágrafos normais -> <p>
+    """
 
-POSTS_POR_BLOG = 3
-GERAR_IMAGENS = True
+    linhas = texto.split("\n")
+    html = ""
+    em_lista = False
 
+    for linha in linhas:
+        linha = linha.strip()
 
-# ==========================================
-# UTILITÁRIOS DE TEMA
-# ==========================================
-
-def carregar_config_blog(nome_blog):
-    caminho = f"blogs/{nome_blog}/config.json"
-    if not os.path.exists(caminho):
-        raise FileNotFoundError(f"Config não encontrada para {nome_blog}")
-
-    with open(caminho, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def carregar_temas(nome_blog):
-    caminho = f"blogs/{nome_blog}/temas.txt"
-    if not os.path.exists(caminho):
-        return []
-
-    with open(caminho, "r", encoding="utf-8") as f:
-        return [linha.strip() for linha in f if linha.strip()]
-
-
-def caminho_historico(nome_blog):
-    return f"blogs/{nome_blog}/temas_usados.json"
-
-
-def carregar_temas_usados(nome_blog):
-    caminho = caminho_historico(nome_blog)
-    if not os.path.exists(caminho):
-        return []
-
-    with open(caminho, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def salvar_temas_usados(nome_blog, lista):
-    caminho = caminho_historico(nome_blog)
-    with open(caminho, "w", encoding="utf-8") as f:
-        json.dump(lista, f, indent=2, ensure_ascii=False)
-
-
-def escolher_tema_inteligente(nome_blog, temas):
-    usados = carregar_temas_usados(nome_blog)
-
-    # Remove temas já usados
-    disponiveis = [t for t in temas if t not in usados]
-
-    # Se todos já foram usados → reset automático
-    if not disponiveis:
-        print("Todos os temas já foram utilizados. Reiniciando ciclo.")
-        usados = []
-        salvar_temas_usados(nome_blog, usados)
-        disponiveis = temas.copy()
-
-    tema_escolhido = random.choice(disponiveis)
-
-    usados.append(tema_escolhido)
-    salvar_temas_usados(nome_blog, usados)
-
-    return tema_escolhido
-
-
-# ==========================================
-# PREVIEW
-# ==========================================
-
-def salvar_preview(nome_blog, html):
-    os.makedirs("preview", exist_ok=True)
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    nome_arquivo = f"preview/{nome_blog}_{timestamp}.html"
-
-    with open(nome_arquivo, "w", encoding="utf-8") as f:
-        f.write(html)
-
-    print(f"Preview salvo em: {nome_arquivo}")
-
-
-# ==========================================
-# SISTEMA PRINCIPAL
-# ==========================================
-
-def main():
-    print("\n===== SISTEMA PROFISSIONAL DEFINITIVO =====\n")
-
-    blogs = blogs_do_dia()
-
-    if not blogs:
-        print("Nenhum blog programado.")
-        return
-
-    for blog in blogs:
-        nome = blog["nome"]
-        blog_id = blog["blog_id"]
-
-        print(f"\nBlog: {nome}")
-        print(f"Blog ID: {blog_id}")
-
-        try:
-            config = carregar_config_blog(nome)
-        except FileNotFoundError as e:
-            print(f"ERRO: {e}")
+        if not linha:
             continue
 
-        temas = carregar_temas(nome)
-
-        if not temas:
-            print("Nenhum tema encontrado.")
+        # Subtítulos
+        if linha.startswith("**") and linha.endswith("**"):
+            if em_lista:
+                html += "</ul>"
+                em_lista = False
+            titulo = linha.replace("**", "")
+            html += f"<h2>{titulo}</h2>"
             continue
 
-        for i in range(POSTS_POR_BLOG):
-            print(f"\n--- Gerando post {i+1} de {POSTS_POR_BLOG} ---")
+        # Lista
+        if linha.startswith("* "):
+            if not em_lista:
+                html += "<ul>"
+                em_lista = True
+            item = linha[2:]
+            html += f"<li>{item}</li>"
+            continue
+        else:
+            if em_lista:
+                html += "</ul>"
+                em_lista = False
 
-            # ==============================
-            # ESCOLHA INTELIGENTE DE TEMA
-            # ==============================
+        # Parágrafo
+        html += f"<p>{linha}</p>"
 
-            tema_escolhido = escolher_tema_inteligente(nome, temas)
-            print(f"Tema escolhido: {tema_escolhido}")
+    if em_lista:
+        html += "</ul>"
 
-            # ==============================
-            # GERAR CONTEÚDO
-            # ==============================
-
-            print("Gerando conteúdo com IA...")
-            conteudo = gerar_conteudo(tema_escolhido, config)
-
-            # ==============================
-            # GERAR IMAGENS
-            # ==============================
-
-            imagens = []
-
-            if GERAR_IMAGENS and config.get("usar_imagens", True):
-                print("Buscando imagens horizontais inteligentes...")
-                try:
-                    imagens = buscar_imagens_16_9(
-                        tema_escolhido,
-                        config.get("quantidade_imagens", 2),
-                        config.get("nicho")
-                    )
-                except Exception as e:
-                    print(f"Erro ao buscar imagens: {e}")
-
-            # ==============================
-            # GERAR HTML
-            # ==============================
-
-            print("Gerando HTML estruturado...")
-
-            try:
-                html_final = gerar_html(
-                    blog_nome=nome,
-                    titulo=tema_escolhido,
-                    conteudo=conteudo,
-                    imagens=imagens,
-                    config_blog=config
-                )
-            except Exception as e:
-                print(f"Erro ao gerar HTML: {e}")
-                continue
-
-            salvar_preview(nome, html_final)
-
-    print("\n===== SISTEMA FINALIZADO COM SUCESSO =====\n")
+    return html
 
 
-if __name__ == "__main__":
-    main()
+def gerar_html(blog_nome, titulo, conteudo, imagens, config_blog):
+
+    data_publicacao = datetime.now().strftime("%Y-%m-%d")
+    autor = "Marco Daher"
+
+    url_base = config_blog.get("url_base", "")
+    slug = re.sub(r"[^a-z0-9-]", "", titulo.lower().replace(" ", "-"))
+    canonical = f"{url_base}/{slug}" if url_base else url_base
+
+    imagem_principal = imagens[0] if imagens else None
+
+    # JSON-LD
+    json_ld = {
+        "@context": "https://schema.org",
+        "@type": config_blog.get("schema_type", "BlogPosting"),
+        "headline": titulo,
+        "description": titulo,
+        "author": {
+            "@type": "Person",
+            "name": autor
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": blog_nome
+        },
+        "datePublished": data_publicacao,
+        "dateModified": data_publicacao,
+        "mainEntityOfPage": canonical
+    }
+
+    if imagem_principal:
+        json_ld["image"] = imagem_principal
+
+    json_ld_str = json.dumps(json_ld, ensure_ascii=False, indent=2)
+
+    # Converter conteúdo
+    conteudo_html = converter_markdown_simples(conteudo)
+
+    # Imagem principal
+    imagem_html = ""
+    if imagem_principal:
+        imagem_html = f"""
+        <div class="post-image">
+            <img src="{imagem_principal}" alt="{titulo}">
+        </div>
+        """
+
+    html = f"""
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>{titulo}</title>
+<meta name="description" content="{titulo}">
+<meta name="author" content="{autor}">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="{canonical}">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="{titulo}">
+<meta property="og:description" content="{titulo}">
+<meta property="og:url" content="{canonical}">
+<meta property="og:site_name" content="{blog_nome}">
+"""
+
+    if imagem_principal:
+        html += f'<meta property="og:image" content="{imagem_principal}">\n'
+
+    html += f"""
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{titulo}">
+<meta name="twitter:description" content="{titulo}">
+"""
+
+    if imagem_principal:
+        html += f'<meta name="twitter:image" content="{imagem_principal}">\n'
+
+    html += f"""
+<script type="application/ld+json">
+{json_ld_str}
+</script>
+
+<style>
+body {{
+    font-family: Arial, sans-serif;
+    line-height: 1.8;
+    max-width: 800px;
+    margin: auto;
+    padding: 20px;
+    color: #003366;
+}}
+
+h1 {{
+    text-align: center;
+    margin-bottom: 25px;
+}}
+
+h2 {{
+    margin-top: 30px;
+    margin-bottom: 10px;
+    color: #0b5394;
+}}
+
+p {{
+    margin-bottom: 18px;
+    text-align: justify;
+}}
+
+ul {{
+    margin-bottom: 20px;
+}}
+
+li {{
+    margin-bottom: 10px;
+}}
+
+.post-image img {{
+    width: 100%;
+    border-radius: 10px;
+    margin-bottom: 25px;
+}}
+</style>
+
+</head>
+<body>
+
+<h1>{titulo.upper()}</h1>
+
+{imagem_html}
+
+{conteudo_html}
+
+{BLOCO_FIXO_FINAL}
+
+</body>
+</html>
+"""
+
+    return html
