@@ -8,19 +8,20 @@ from core.scheduler import blogs_do_dia
 from core.content_engine import gerar_conteudo
 from core.image_engine import buscar_imagens_16_9
 from core.html_engine import gerar_html
+from core.ideas_engine import gerar_tema_estrategico
 
 
 # ==========================================
-# CONFIGURAÇÕES GERAIS
+# CONFIGURAÇÕES
 # ==========================================
 
 POSTS_POR_BLOG = 3
 GERAR_IMAGENS = True
-HISTORICO_FILE = "data/historico_temas.json"
+HISTORICO_LIMITE = 50
 
 
 # ==========================================
-# UTILITÁRIOS
+# FUNÇÕES AUXILIARES
 # ==========================================
 
 def carregar_config_blog(nome_blog):
@@ -33,60 +34,46 @@ def carregar_config_blog(nome_blog):
         return json.load(f)
 
 
-def carregar_historico():
-    if not os.path.exists(HISTORICO_FILE):
-        return {}
+def carregar_historico(nome_blog):
+    caminho = f"blogs/{nome_blog}/historico_temas.json"
 
-    with open(HISTORICO_FILE, "r", encoding="utf-8") as f:
+    if not os.path.exists(caminho):
+        return []
+
+    with open(caminho, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def salvar_historico(historico):
-    os.makedirs("data", exist_ok=True)
-    with open(HISTORICO_FILE, "w", encoding="utf-8") as f:
-        json.dump(historico, f, indent=2, ensure_ascii=False)
+def salvar_historico(nome_blog, historico):
+    caminho = f"blogs/{nome_blog}/historico_temas.json"
+    os.makedirs(f"blogs/{nome_blog}", exist_ok=True)
+
+    with open(caminho, "w", encoding="utf-8") as f:
+        json.dump(historico[-HISTORICO_LIMITE:], f, indent=2, ensure_ascii=False)
 
 
-def escolher_tema(nome_blog, config, historico):
-    """
-    Escolhe tema evitando repetição recente.
-    Usa banco infinito se existir.
-    """
+def gerar_tema_unico(nicho, historico):
+    tentativas = 0
 
-    banco_ideias = config.get("banco_ideias", [])
+    while tentativas < 20:
+        tema = gerar_tema_estrategico(nicho)
 
-    if not banco_ideias:
-        return "Tema Estratégico Automático"
+        if tema not in historico:
+            return tema
 
-    temas_usados = historico.get(nome_blog, [])
+        tentativas += 1
 
-    temas_disponiveis = [
-        tema for tema in banco_ideias
-        if tema not in temas_usados
-    ]
-
-    # Se acabou tudo, reinicia ciclo
-    if not temas_disponiveis:
-        historico[nome_blog] = []
-        temas_disponiveis = banco_ideias
-
-    tema = random.choice(temas_disponiveis)
-
-    historico.setdefault(nome_blog, []).append(tema)
-
-    # Limitar histórico a últimos 50
-    historico[nome_blog] = historico[nome_blog][-50:]
-
-    return tema
+    # fallback se tudo repetir
+    return gerar_tema_estrategico(nicho)
 
 
 def salvar_preview(nome_blog, html):
     os.makedirs("preview", exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    timestamp += f"_{int(time.time()*1000)}"
+    millis = int(time.time() * 1000)
 
-    nome_arquivo = f"preview/{nome_blog}_{timestamp}.html"
+    nome_arquivo = f"preview/{nome_blog}_{timestamp}_{millis}.html"
 
     with open(nome_arquivo, "w", encoding="utf-8") as f:
         f.write(html)
@@ -99,19 +86,15 @@ def salvar_preview(nome_blog, html):
 # ==========================================
 
 def main():
-
     print("\n===== SISTEMA PROFISSIONAL DEFINITIVO =====\n")
 
     blogs = blogs_do_dia()
 
     if not blogs:
-        print("Nenhum blog programado para hoje.")
+        print("Nenhum blog programado.")
         return
 
-    historico = carregar_historico()
-
     for blog in blogs:
-
         nome = blog["nome"]
         blog_id = blog["blog_id"]
 
@@ -124,54 +107,50 @@ def main():
             print(f"ERRO: {e}")
             continue
 
-        for i in range(POSTS_POR_BLOG):
+        nicho = config.get("nicho", "")
+        historico = carregar_historico(nome)
 
+        for i in range(POSTS_POR_BLOG):
             print(f"\n--- Gerando post {i+1} de {POSTS_POR_BLOG} ---")
 
             # ======================================
-            # TEMA INTELIGENTE COM HISTÓRICO
+            # GERAR TEMA ESTRATÉGICO ÚNICO
             # ======================================
 
-            tema_escolhido = escolher_tema(nome, config, historico)
+            tema_escolhido = gerar_tema_unico(nicho, historico)
             print(f"Tema escolhido: {tema_escolhido}")
+
+            historico.append(tema_escolhido)
 
             # ======================================
             # GERAR CONTEÚDO
             # ======================================
 
             print("Gerando conteúdo com IA...")
-            try:
-                conteudo = gerar_conteudo(tema_escolhido, config)
-            except Exception as e:
-                print(f"Erro ao gerar conteúdo: {e}")
-                continue
+            conteudo = gerar_conteudo(tema_escolhido, config)
 
             # ======================================
-            # GERAR IMAGENS
+            # GERAR IMAGENS INTELIGENTES
             # ======================================
 
             imagens = []
 
             if GERAR_IMAGENS and config.get("usar_imagens", True):
-
                 print("Buscando imagens horizontais inteligentes...")
-
                 try:
                     imagens = buscar_imagens_16_9(
                         tema_escolhido,
                         quantidade=1,
-                        nicho=config.get("nicho")
+                        nicho=nicho
                     )
                 except Exception as e:
                     print(f"Erro ao buscar imagens: {e}")
-                    imagens = []
 
             # ======================================
             # GERAR HTML
             # ======================================
 
             print("Gerando HTML estruturado...")
-
             try:
                 html_final = gerar_html(
                     blog_nome=nome,
@@ -186,7 +165,8 @@ def main():
 
             salvar_preview(nome, html_final)
 
-    salvar_historico(historico)
+        # salva histórico após todos os posts do blog
+        salvar_historico(nome, historico)
 
     print("\n===== SISTEMA FINALIZADO COM SUCESSO =====\n")
 
