@@ -1,5 +1,10 @@
 import random
 import re
+import os
+import json
+
+DATA_DIR = "data"
+HISTORICO_FILE = os.path.join(DATA_DIR, "historico_temas.json")
 
 
 # ==========================================
@@ -14,7 +19,7 @@ ESTRUTURAS = {
         "Erros comuns sobre {keyword}",
         "{keyword} após os 40 anos: o que muda?",
         "O que ninguém te conta sobre {keyword}",
-        "{keyword}: estratégia comprovada",
+        "{keyword}: estratégia comprovada"
     ],
 
     "automodelismo": [
@@ -23,7 +28,7 @@ ESTRUTURAS = {
         "Erros comuns em {keyword}",
         "Setup ideal para {keyword}",
         "{keyword}: dicas avançadas",
-        "Tudo sobre {keyword} para iniciantes",
+        "Tudo sobre {keyword} para iniciantes"
     ],
 
     "fotografia": [
@@ -31,7 +36,7 @@ ESTRUTURAS = {
         "Guia prático de {keyword}",
         "Erros que arruínam {keyword}",
         "{keyword}: técnica profissional explicada",
-        "Segredos de {keyword}",
+        "Segredos de {keyword}"
     ],
 
     "noticias": [
@@ -39,7 +44,7 @@ ESTRUTURAS = {
         "{keyword}: o que está acontecendo agora",
         "Análise completa sobre {keyword}",
         "Bastidores de {keyword}",
-        "{keyword}: cenário atual e perspectivas",
+        "{keyword}: cenário atual e perspectivas"
     ]
 }
 
@@ -90,7 +95,25 @@ KEYWORDS = {
 
 
 # ==========================================
-# GERADOR PRINCIPAL
+# HISTÓRICO
+# ==========================================
+
+def carregar_historico():
+    if not os.path.exists(HISTORICO_FILE):
+        return {}
+
+    with open(HISTORICO_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def salvar_historico(historico):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(HISTORICO_FILE, "w", encoding="utf-8") as f:
+        json.dump(historico, f, indent=2, ensure_ascii=False)
+
+
+# ==========================================
+# GERADOR DEFINITIVO
 # ==========================================
 
 def gerar_tema_estrategico(nicho):
@@ -98,12 +121,30 @@ def gerar_tema_estrategico(nicho):
     if nicho not in ESTRUTURAS:
         return "Conteúdo Estratégico Atualizado"
 
-    estrutura = random.choice(ESTRUTURAS[nicho])
-    keyword = random.choice(KEYWORDS[nicho])
+    historico = carregar_historico()
 
-    titulo = estrutura.replace("{keyword}", keyword)
+    if nicho not in historico:
+        historico[nicho] = []
 
-    # Remove numeração automática
-    titulo = re.sub(r"^\d+\.\s*", "", titulo)
+    tentativas = 0
 
-    return titulo
+    while tentativas < 50:
+
+        estrutura = random.choice(ESTRUTURAS[nicho])
+        keyword = random.choice(KEYWORDS[nicho])
+
+        titulo = estrutura.replace("{keyword}", keyword)
+        titulo = re.sub(r"^\d+\.\s*", "", titulo)
+
+        if titulo not in historico[nicho]:
+            historico[nicho].append(titulo)
+            salvar_historico(historico)
+            return titulo
+
+        tentativas += 1
+
+    # Se esgotar combinações, força expansão
+    titulo_extra = f"{random.choice(KEYWORDS[nicho]).title()}: análise aprofundada e atualizada"
+    historico[nicho].append(titulo_extra)
+    salvar_historico(historico)
+    return titulo_extra
