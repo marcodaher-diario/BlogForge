@@ -4,92 +4,36 @@ from datetime import datetime
 from core.assinatura import BLOCO_FIXO_FINAL
 
 
-def processar_conteudo(conteudo):
-    """
-    Converte markdown simples em HTML estruturado:
-    - **Título** → <h2>
-    - * item → lista <ul><li>
-    - Parágrafos normais → <p>
-    """
-
-    linhas = conteudo.split("\n")
-    html = ""
-    em_lista = False
-
-    for linha in linhas:
-        linha = linha.strip()
-
-        if not linha:
-            continue
-
-        # ==========================
-        # SUBTÍTULO
-        # ==========================
-        if re.match(r"\*\*(.*?)\*\*", linha):
-            if em_lista:
-                html += "</ul>"
-                em_lista = False
-
-            titulo = re.sub(r"\*\*(.*?)\*\*", r"\1", linha)
-            html += f"""
-<h2 style="color:#0b5394;margin-top:30px;margin-bottom:10px;font-family:Arial;">
-{titulo}
-</h2>
-"""
-            continue
-
-        # ==========================
-        # LISTA
-        # ==========================
-        if linha.startswith("* "):
-            if not em_lista:
-                html += "<ul style='margin:15px 0 20px 20px;font-family:Arial;color:#003366;'>"
-                em_lista = True
-
-            item = linha[2:]
-            html += f"<li style='margin-bottom:8px;'>{item}</li>"
-            continue
-
-        else:
-            if em_lista:
-                html += "</ul>"
-                em_lista = False
-
-        # ==========================
-        # PARÁGRAFO
-        # ==========================
-        html += f"""
-<p style="color:#003366;font-family:Arial;line-height:1.7;margin:15px 0;text-align:justify;">
-{linha}
-</p>
-"""
-
-    if em_lista:
-        html += "</ul>"
-
-    return html
-
-
 def gerar_html(blog_nome, titulo, conteudo, imagens, config_blog):
+    """
+    Gera HTML profissional definitivo seguindo padrão estrutural fixo:
+    - Título x-large Arial #003366
+    - 2 imagens grandes centralizadas
+    - Subtítulos large Arial #003366
+    - Texto medium Arial #003366
+    - Imagem 2 após segundo bloco de conteúdo
+    - Considerações Finais como subtítulo
+    """
 
     data_publicacao = datetime.now().strftime("%Y-%m-%d")
     autor = "Marco Daher"
-    descricao = titulo
 
     url_base = config_blog.get("url_base", "")
-    canonical = url_base if url_base else ""
+    slug = re.sub(r"[^a-z0-9-]", "", titulo.lower().replace(" ", "-"))
+    canonical = f"{url_base}/{slug}" if url_base else url_base
 
-    imagem_principal = imagens[0] if imagens else ""
+    imagem_topo = imagens[0] if len(imagens) > 0 else None
+    imagem_intermediaria = imagens[1] if len(imagens) > 1 else None
 
-    # ==========================
+    # ==============================
     # JSON-LD
-    # ==========================
+    # ==============================
 
     json_ld = {
         "@context": "https://schema.org",
         "@type": config_blog.get("schema_type", "BlogPosting"),
         "headline": titulo,
-        "description": descricao,
+        "description": titulo,
         "author": {
             "@type": "Person",
             "name": autor
@@ -100,69 +44,116 @@ def gerar_html(blog_nome, titulo, conteudo, imagens, config_blog):
         },
         "datePublished": data_publicacao,
         "dateModified": data_publicacao,
-        "mainEntityOfPage": url_base,
-        "image": imagem_principal
+        "mainEntityOfPage": canonical
     }
+
+    if imagem_topo:
+        json_ld["image"] = imagem_topo
 
     json_ld_str = json.dumps(json_ld, ensure_ascii=False, indent=2)
 
-    # ==========================
-    # PROCESSAR CONTEÚDO
-    # ==========================
+    # ==============================
+    # PROCESSAMENTO DO CONTEÚDO
+    # ==============================
 
-    corpo_formatado = processar_conteudo(conteudo)
+    linhas = conteudo.split("\n")
+    html_conteudo = ""
+    contador_blocos = 0
 
-    # ==========================
-    # IMAGENS
-    # ==========================
+    for linha in linhas:
+        linha = linha.strip()
 
-    imagens_html = ""
+        if not linha:
+            continue
 
-    for img in imagens:
-        imagens_html += f"""
-<div style="margin:25px 0;text-align:center;">
-    <img src="{img}" 
-         style="max-width:100%;height:auto;border-radius:10px;
-                box-shadow:0 4px 8px rgba(0,0,0,0.1);" />
+        # INTRODUÇÃO
+        if linha.upper().startswith("INTRODUÇÃO:"):
+            continue
+
+        # SUBTÍTULO
+        if linha.upper().startswith("SUBTITULO:"):
+            subtitulo = linha.replace("SUBTITULO:", "").strip()
+
+            html_conteudo += f"""
+<h2 style="font-family: Arial; font-size: large; color: #003366; margin-top: 30px;">
+{subtitulo}
+</h2>
+"""
+            continue
+
+        # CONSIDERAÇÕES FINAIS
+        if linha.upper().startswith("CONSIDERAÇÕES FINAIS"):
+            html_conteudo += """
+<h2 style="font-family: Arial; font-size: large; color: #003366; margin-top: 30px;">
+Considerações Finais
+</h2>
+"""
+            continue
+
+        # PARÁGRAFO NORMAL
+        contador_blocos += 1
+
+        html_conteudo += f"""
+<p style="font-family: Arial; font-size: medium; color: #003366; text-align: justify; margin-bottom: 18px;">
+{linha}
+</p>
+"""
+
+        # Inserir imagem intermediária após segundo bloco de conteúdo
+        if contador_blocos == 2 and imagem_intermediaria:
+            html_conteudo += f"""
+<div style="text-align: center; margin: 30px 0;">
+    <img src="{imagem_intermediaria}" 
+         style="width: 100%; max-width: 800px; border-radius: 10px;">
 </div>
 """
 
-    # ==========================
+    # ==============================
     # HTML FINAL
-    # ==========================
+    # ==============================
 
-    html = f"""
+    html = f"""<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>{titulo}</title>
+<meta name="description" content="{titulo}">
+<meta name="author" content="{autor}">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="{canonical}">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="{titulo}">
+<meta property="og:description" content="{titulo}">
+<meta property="og:url" content="{canonical}">
+<meta property="og:site_name" content="{blog_nome}">
+{"<meta property='og:image' content='" + imagem_topo + "'>" if imagem_topo else ""}
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{titulo}">
+<meta name="twitter:description" content="{titulo}">
+{"<meta name='twitter:image' content='" + imagem_topo + "'>" if imagem_topo else ""}
+
 <script type="application/ld+json">
 {json_ld_str}
 </script>
 
-<meta property="og:type" content="article">
-<meta property="og:title" content="{titulo}">
-<meta property="og:description" content="{descricao}">
-<meta property="og:image" content="{imagem_principal}">
-<meta property="og:url" content="{canonical}">
-<meta property="og:site_name" content="{blog_nome}">
+</head>
 
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{titulo}">
-<meta name="twitter:description" content="{descricao}">
-<meta name="twitter:image" content="{imagem_principal}">
+<body style="max-width: 800px; margin: auto; padding: 20px;">
 
-<div style="max-width:800px;margin:auto;line-height:1.6;">
-
-<h1 style="color:#003366;font-family:Arial;
-           font-size:28px;font-weight:bold;
-           margin:20px 0;text-align:center;">
-{titulo.upper()}
+<h1 style="font-family: Arial; font-size: x-large; color: #003366; text-align: center; margin-bottom: 25px;">
+{titulo}
 </h1>
 
-{imagens_html}
+{"<div style='text-align: center; margin: 30px 0;'><img src='" + imagem_topo + "' style='width: 100%; max-width: 800px; border-radius: 10px;'></div>" if imagem_topo else ""}
 
-{corpo_formatado}
-
-</div>
+{html_conteudo}
 
 {BLOCO_FIXO_FINAL}
+
+</body>
+</html>
 """
 
     return html
